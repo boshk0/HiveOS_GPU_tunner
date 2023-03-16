@@ -86,16 +86,16 @@ args = sys.argv + [None] * (7 - len(sys.argv))
 
 free_power = [
 	["FLUX", "FLUX", 62, 0, 2, 1], 
-	["KASPA", "KAS", 503, 0, 2, 1], 
-	["NEXA", "NEXA", 51.5, 0, 2, 1], 
-	["DYNEX", "DNX", 64, 0, 2, 1],
+	["KASPA", "KAS", 530, 0, 2, 1], 
+	["NEXA", "NEXA", 60.9, 0, 2, 1], 
+	["DYNEX", "DNX", 440, 0, 2, 1],
 ]
 
 paid_power = [
 	["FLUX", "FLUX", 62, 105, 2, 1], 
-	["KASPA", "KAS", 503, 62, 2, 1], 
-	["NEXA", "NEXA", 51.5, 101, 2, 1], 
-	["DYNEX", "DNX", 64, 42, 2, 1],
+	["KASPA", "KAS", 530, 73, 2, 1], 
+	["NEXA", "NEXA", 60.9, 110, 2, 1], 
+	["DYNEX", "DNX", 440, 102, 2, 1],
 ]
 
 settings = paid_power if args[1] == "paid" else free_power
