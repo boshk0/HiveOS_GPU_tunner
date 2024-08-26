@@ -4,6 +4,13 @@
 # Run setup in container
 #wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/setup_comfyui_with_flux.sh | bash
 
+# Start ComfyUI if the provision setup has completed before
+if [ -f "/ComfuUI/setup_ready" ]; then
+  # Start ComfyUI instance for every GPU
+  ./comfyui_launcher.sh
+  exit 1
+fi
+
 # Update and Upgrade
 apt update -y && apt upgrade -y
 
@@ -31,5 +38,8 @@ wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/provis
 cd /ComfyUI
 wget -N -O comfyui_launcher.sh https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/comfyui_launcher.sh && sudo chmod +x comfyui_launcher.sh
 
-#Start ComfyUI instance for every GPU
+# Avoid instance running the setup again
+touch setup_ready
+
+# Start ComfyUI instance for every GPU
 ./comfyui_launcher.sh
