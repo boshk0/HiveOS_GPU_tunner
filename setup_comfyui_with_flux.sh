@@ -31,9 +31,7 @@ wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/provis
 
 # Download ComfyUI launcher script
 cd /ComfyUI
-wget https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/comfyui_launcher.sh | sudo chmod +x comfyui_launcher.sh
+wget -N -O comfyui_launcher.sh https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/comfyui_launcher.sh && sudo chmod +x comfyui_launcher.sh
 
 #Start ComfyUI instance for every GPU
 ./comfyui_launcher.sh
-
-#python3 main.py --listen 0.0.0.0 --port 8082 --cuda-device 0
