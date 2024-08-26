@@ -3,6 +3,9 @@ ComfyUI docker setup
 # Spin-up Docker container on Vast
 #vastai create instance INSTANCE_ID --price 0.72 --disk 128 --image nvidia/cuda:12.3.2-devel-ubuntu22.04 --env '-p 8202:8202 -e HF_TOKEN=xxxxxxxxxx'
 
+# Run setup in container
+#wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/setup_comfyui_with_flux.sh | bash
+
 # Update and Upgrade
 apt update -y && apt upgrade -y
 
