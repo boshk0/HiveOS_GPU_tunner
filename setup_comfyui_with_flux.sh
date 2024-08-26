@@ -27,8 +27,13 @@ git clone https://github.com/ltdrdata/ComfyUI-Manager.git
 # At this point the HF_TOKEN shuold have been set!
 
 # Provision FLUX on CompyUI
-cd /ComfyUI/
-wget https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/provision_comfyui_flux.py
-python3 provision_comfyui_flux.py
+wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/provision_comfyui_flux.py | python3
 
-python3 main.py --listen 0.0.0.0 --port 8082 --cuda_device $CUDA_DEVICE
+# Download ComfyUI launcher script
+cd /ComfyUI
+wget https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/comfyui_launcher.sh | sudo chmod +x comfyui_launcher.sh
+
+#Start ComfyUI instance for every GPU
+./comfyui_launcher.sh
+
+#python3 main.py --listen 0.0.0.0 --port 8082 --cuda-device 0
