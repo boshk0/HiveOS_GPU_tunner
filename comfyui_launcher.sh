@@ -15,7 +15,7 @@ for i in $(echo "$gpu_ids" | tr '\n' ' '); do
   }
 
   # Create new Tmux session
-  if ! tmux new-session -d 'python3 main.py --listen 0.0.0.0 --port $port --cuda-device $gpu_id'; then
+  if ! tmux new-session -d "python3 main.py --listen 0.0.0.0 --port $port --cuda-device $gpu_id"; then
     echo "Error creating Tmux session: $?"
     continue
   fi
