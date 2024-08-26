@@ -3,7 +3,7 @@
 gpu_ids=$(nvidia-smi --query-gpu=index --format=csv,nounits,noheader)
 
 for i in $(echo "$gpu_ids" | tr '\n' ' '); do
-  gpu_id=i
+  gpu_id=$i
   port=$((8080 + i + 1))
 
   echo "Starting ComfyUI on GPU $gpu_id..."
