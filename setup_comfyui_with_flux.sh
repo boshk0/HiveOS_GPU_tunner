@@ -21,15 +21,15 @@ apt install -y git python3-pip libgl1-mesa-dev libglib2.0-0 nano
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
 # Install ComfyUI
-git clone https://github.com/comfyanonymous/ComfyUI.git
+git clone https://github.com/comfyanonymous/ComfyUI.git /ComfyUI
 cd /ComfyUI
 pip install -r requirements.txt
 
 # Install ComfyUI Manager
 cd /ComfyUI/custom_nodes
-git clone https://github.com/ltdrdata/ComfyUI-Manager.git
+git clone https://github.com/ltdrdata/ComfyUI-Manager.git /ComfyUI/custom_nodesComfyUI-Manager
 
-# At this point the HF_TOKEN shuold have been set!
+# At this point the HF_TOKEN shuold have been set as environment variable!
 
 # Provision FLUX on CompyUI
 wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/provision_comfyui_flux.py | python3
@@ -38,7 +38,7 @@ wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/provis
 cd /ComfyUI
 wget -N -O comfyui_launcher.sh https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/comfyui_launcher.sh && sudo chmod +x comfyui_launcher.sh
 
-# Avoid instance running the setup again
+# Flag the setup as complete to avoid instance running the setup again
 touch setup_ready
 
 # Start ComfyUI instance for every GPU
