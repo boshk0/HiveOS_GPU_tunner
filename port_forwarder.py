@@ -5,7 +5,9 @@ from_host = "0.0.0.0"
 to_host = "172.17.0.2"
 port_mapping = {
     8081: 8081,
-    8082: 8082,  # Add more port mappings as needed
+    8082: 8082,
+    8083: 8083,
+    8084: 8084,  # Add more port mappings as needed
 }
 default_data_length = 4096  # Default buffer size
 
