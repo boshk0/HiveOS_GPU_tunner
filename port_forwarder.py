@@ -7,7 +7,7 @@ port_mapping = {
     8081: 8081,
     8082: 8082,  # Add more port mappings as needed
 }
-default_data_length = 1024  # Default buffer size
+default_data_length = 4096  # Default buffer size
 
 def forward(source, destination, buffer_size):
     try:
