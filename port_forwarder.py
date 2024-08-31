@@ -1,3 +1,5 @@
+#tmux new-session -d "curl -sSLf -o- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/port_forwarder.py | python3"
+
 import socket
 import threading
 
