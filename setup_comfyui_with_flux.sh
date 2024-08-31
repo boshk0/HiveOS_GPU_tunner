@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 # Install ComfyUI Manager
 cd /ComfyUI/custom_nodes
-git clone https://github.com/ltdrdata/ComfyUI-Manager.git /ComfyUI/custom_nodesComfyUI-Manager
+git clone https://github.com/ltdrdata/ComfyUI-Manager.git /ComfyUI/custom_nodes/ComfyUI-Manager
 
 # At this point the HF_TOKEN shuold have been set as environment variable!
 
