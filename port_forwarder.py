@@ -1,6 +1,6 @@
 # Usage:
 # curl -sSLf -o port_forwarder.py https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/port_forwarder.py
-# python3 port_forwarder.py -f 0.0.0.0 -t 172.17.0.2 -p "8081:8081, 8082:8082" -d 4096
+# tmux new-session -d 'python3 port_forwarder.py -f 0.0.0.0 -t 172.17.0.2 -p "8081:8081, 8082:8082" -d 4096'
 
 import socket
 import threading
@@ -99,7 +99,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Port Forwarder')
     parser.add_argument('-f', '--from-host', default=default_from_host, help=f'Local host IP address (default={default_from_host})')
     parser.add_argument('-t', '--to-host', default=default_to_host, help=f'Remote host IP address (default={default_to_host})')
-    parser.add_argument('-p', '--port-mapping', default=str(default_port_mapping), help=f'Port mapping dictionary (default={str(default_port_mapping)}) or comma-separated port mappings (e.g. "8081:8081, 8082>    parser.add_argument('-d', '--data-length', type=int, default=default_data_length, help=f'Default data length (default={default_data_length})')
+    parser.add_argument('-p', '--port-mapping', default=str(default_port_mapping), help=f'Port mapping dictionary (default={str(default_port_mapping)}) or comma-separated port mappings (e.g. "8081:8081, 8082:0802")')
+    parser.add_argument('-d', '--data-length', type=int, default=default_data_length, help=f'Default data length (default={default_data_length})')
 
     return parser.parse_args()
 
