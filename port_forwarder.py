@@ -1,4 +1,6 @@
-#tmux new-session -d "curl -sSLf -o- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/port_forwarder.py | python3"
+# Usage:
+# curl -sSLf -o port_forwarder.py https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/port_forwarder.py
+# python3 port_forwarder.py -f 0.0.0.0 -t 172.17.0.2 -p "8081:8081, 8082:8082" -d 4096
 
 import socket
 import threading
@@ -133,5 +135,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Usage: python3 port_forwarder.py -f 0.0.0.0 -t 172.17.0.2 -p "8081:8081, 8082:8082" -d 4096
