@@ -1,7 +1,17 @@
 # wget -O common_commands https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/common_commands
 
+# Install Nvidia drivers
+sudo apt install nvidia-drivers-550-server
+
+# Disable auto updates
+sudo nano /etc/apt/apt.conf.d/20auto-upgrades
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "0";
+
 # Usefull utils
-# sudo apt install nano nvtop bpytop
+sudo apt install nano nvtop bpytop
 
 # Show GPU statistics
 nvidia-smi -q
@@ -67,10 +77,3 @@ docker builder prune -f
 
 # Show total/available disk space
 df -h
-
-# Disable auto updates
-sudo nano /etc/apt/apt.conf.d/20auto-upgrades
-APT::Periodic::Update-Package-Lists "0";
-APT::Periodic::Download-Upgradeable-Packages "0";
-APT::Periodic::AutocleanInterval "0";
-APT::Periodic::Unattended-Upgrade "0";
