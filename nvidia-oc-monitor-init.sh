@@ -113,7 +113,7 @@ while true; do
 
         if [[ -z "$process_arg" ]]; then
             # Handle processes without specific arguments
-            if pgrep -x "$process" > /dev/null; then
+            if pgrep -f "$process" > /dev/null; then
                 # Give GPU time between each OC settings change (reset/set)
                 sleep $oc_change_delay
 
