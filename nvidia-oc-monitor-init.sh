@@ -22,7 +22,7 @@ load_config_from_url() {
     # Generate a unique URL to prevent caching (using the current timestamp)
     uniqueUrl="${configFileUrl}?$(date +%s)"
     
-    if curl -f -s "$uniqueUrl" -o "/tmp/processSettings.conf"; then
+    if curl -f -s -H "Cache-Control: no-cache" "$uniqueUrl" -o "/tmp/processSettings.conf"; then
         while IFS='=' read -r key value; do
             # Trim leading and trailing spaces
             key=$(echo $key | xargs)
