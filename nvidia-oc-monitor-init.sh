@@ -110,23 +110,23 @@ while true; do
     for entry in "${!processSettings[@]}"; do
         IFS=',' read -r process process_arg <<< "$entry"
         settings=${processSettings["$entry"]}
-
+        
         if [[ -z "$process_arg" ]]; then
             # Handle processes without specific arguments
-            if pgrep -f "$process" > /dev/null; then
+            if pgrep -f "(^|/)$process(\s|$)" > /dev/null; then
                 # Give GPU time between each OC settings change (reset/set)
                 sleep $oc_change_delay
-
-                set_oc $process "" "${settings}"
+        
+                set_oc "$process" "" "${settings}"
                 break # Exit the loop after setting OC for the first running process
             fi
         else
             # Handle processes with specific arguments
-            if pgrep -if "$process.*$process_arg" > /dev/null; then
+            if pgrep -if "(^|/)$process(\s|$).*$process_arg" > /dev/null; then
                 # Give GPU time between each OC settings change (reset/set)
                 sleep $oc_change_delay
-
-                set_oc $process "$process_arg" "${settings}"
+        
+                set_oc "$process" "$process_arg" "${settings}"
                 break # Exit the loop after setting OC for the first running process
             fi
         fi
