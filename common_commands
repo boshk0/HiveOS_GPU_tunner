@@ -1,7 +1,13 @@
 # wget -O common_commands https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/common_commands
 
+# Setup machine
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install gcc make nano nvtop bpytop -y
+
 # Install Nvidia drivers
-sudo apt install nvidia-drivers-550-server
+#sudo apt install nvidia-drivers-550-server
+wget https://us.download.nvidia.com/XFree86/Linux-x86_64/560.35.03/NVIDIA-Linux-x86_64-560.35.03.run
+sudo sh NVIDIA-Linux-x86_64-560.35.03.run
 
 # Disable auto updates
 sudo nano /etc/apt/apt.conf.d/20auto-upgrades
@@ -13,9 +19,6 @@ APT::Periodic::Unattended-Upgrade "0";
 # Use docker without root privileges
 sudo groupadd docker
 sudo usermod -aG docker $USER
-
-# Usefull utils
-sudo apt install gcc make nano nvtop bpytop
 
 # Show GPU statistics
 nvidia-smi -q
