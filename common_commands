@@ -15,7 +15,7 @@ sudo groupadd docker
 sudo usermod -aG docker $USER
 
 # Usefull utils
-sudo apt install nano nvtop bpytop
+sudo apt install gcc make nano nvtop bpytop
 
 # Show GPU statistics
 nvidia-smi -q
