@@ -2,7 +2,7 @@
 
 # Setup machine
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install gcc make nano nvtop bpytop -y
+sudo apt install gcc make nano nvtop btop -y
 
 # Install Nvidia drivers
 #sudo apt install nvidia-drivers-550-server
