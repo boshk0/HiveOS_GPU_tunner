@@ -12,8 +12,8 @@ processSettings["pow-miner-cuda,"]="mem_clock=810" # Miner for GRAM algo
 processSettings["qli-runner,"]="mem_clock=5001" # Miner for QUBIC algo
 processSettings["xelis-taxminer,"]="mem_clock=5001" # Miner for XEL algo
 processSettings["hashcat,"]="mem_clock=5001" # Hashcat password cracker
-processSettings["lolMiner,--algo TON "]="mem_clock=810,code_clock=2340" # Miner for TON algo
- 
+processSettings["lolMiner,--algo TON "]="mem_clock=810,core_clock=2340" # Miner for TON algo
+
 time_interval=60 # Seconds between each loop
 oc_change_delay=1 # Delay between resetting and setting OC
 
@@ -41,9 +41,10 @@ load_config_from_url() {
 
 # Function to set overclocking
 set_oc() {
-    local process=$1
-    local process_arg=$2
-    local settings=$3
+    local gpu_id=$1
+    local process=$2
+    local process_arg=$3
+    local settings=$4
 
     local mem_clock core_clock
 
@@ -62,16 +63,16 @@ set_oc() {
     done
 
     if [[ -n "$mem_clock" ]]; then
-        echo "$(date): Setting memory OC for $process (arg: $process_arg) to $mem_clock"
+        echo "$(date): Setting memory OC for GPU $gpu_id ($process$process_arg) to $mem_clock"
         {
-            nvidia-smi -lmc $mem_clock
+            nvidia-smi -i $gpu_id -lmc $mem_clock
         } > /dev/null 2>&1
     fi
 
     if [[ -n "$core_clock" ]]; then
-        echo "$(date): Setting core OC for $process (arg: $process_arg) to $core_clock"
+        echo "$(date): Setting core OC for GPU $gpu_id ($process$process_arg) to $core_clock"
         {
-            nvidia-smi -lgc $core_clock
+            nvidia-smi -i $gpu_id -lgc $core_clock
         } > /dev/null 2>&1
     fi
 }
@@ -107,29 +108,27 @@ while true; do
     # Reset OC settings at the start of each loop
     reset_oc
 
-    for entry in "${!processSettings[@]}"; do
-        IFS=',' read -r process process_arg <<< "$entry"
-        settings=${processSettings["$entry"]}
-        
-        if [[ -z "$process_arg" ]]; then
-            # Handle processes without specific arguments
-            if pgrep -f "(^|/)$process(\s|$)" > /dev/null; then
-                # Give GPU time between each OC settings change (reset/set)
-                sleep $oc_change_delay
-        
-                set_oc "$process" "" "${settings}"
-                break # Exit the loop after setting OC for the first running process
-            fi
-        else
-            # Handle processes with specific arguments
-            if pgrep -if "(^|/)$process(\s|$).*$process_arg" > /dev/null; then
-                # Give GPU time between each OC settings change (reset/set)
-                sleep $oc_change_delay
-        
-                set_oc "$process" "$process_arg" "${settings}"
-                break # Exit the loop after setting OC for the first running process
-            fi
-        fi
+    for gpu_id in $(nvidia-smi --query-gpu=index --format=csv,noheader); do
+        # List processes for the specific GPU
+        for pid in $(nvidia-smi -i "$gpu_id" --query-compute-apps=pid --format=csv,noheader); do
+            process_cmd=$(ps -p "$pid" -o args=)
+            for entry in "${!processSettings[@]}"; do
+                IFS=',' read -r process process_arg <<< "$entry"
+                settings=${processSettings["$entry"]}
+                
+                # Check if the command contains the process and the argument (if specified)
+                if [[ "$process_cmd" == *"$process"* ]]; then
+                    if [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]]; then
+                        # Give GPU time between each OC settings change (reset/set)
+                        sleep $oc_change_delay
+
+                        set_oc "$gpu_id" "$process" "$process_arg" "${settings}"
+                        break 2 # Exit both loops after setting OC for the first matching process
+                    fi
+                fi
+                
+            done
+        done
     done
 
     sleep $time_interval
