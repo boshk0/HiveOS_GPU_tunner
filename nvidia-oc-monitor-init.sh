@@ -116,8 +116,8 @@ while true; do
                 IFS=',' read -r process process_arg <<< "$entry"
                 settings=${processSettings["$entry"]}
                 
-                # Check if the command contains the process and the argument (if specified)
-                if [[ "$process_cmd" == *"$process"* ]]; then
+                # Match commonly used characters like ., / and space
+                if [[ "$process_cmd" =~ (^|[[:space:]/])$process($|[[:space:]]) ]]; then
                     if [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]]; then
                         # Give GPU time between each OC settings change (reset/set)
                         sleep $oc_change_delay
