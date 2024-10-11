@@ -63,14 +63,14 @@ set_oc() {
     done
 
     if [[ -n "$mem_clock" ]]; then
-        echo "$(date): Setting memory OC for GPU $gpu_id ($process$process_arg) to $mem_clock"
+        echo "$(date): Setting memory OC for GPU $gpu_id ($process $process_arg) to $mem_clock"
         {
             nvidia-smi -i $gpu_id -lmc $mem_clock
         } > /dev/null 2>&1
     fi
 
     if [[ -n "$core_clock" ]]; then
-        echo "$(date): Setting core OC for GPU $gpu_id ($process$process_arg) to $core_clock"
+        echo "$(date): Setting core OC for GPU $gpu_id ($process $process_arg) to $core_clock"
         {
             nvidia-smi -i $gpu_id -lgc $core_clock
         } > /dev/null 2>&1
