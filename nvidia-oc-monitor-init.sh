@@ -6,13 +6,13 @@ cat << 'EOF' | sudo tee /usr/local/bin/nvidia-oc-monitor
 # Configuration file URL
 configFileUrl="https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/nvidia-oc-monitor.conf"
 
-# Define an associative array for process settings with arguments, memory, and core clocks
+# Define an associative array for process settings with arguments, memory, core clocks, and power limit
 declare -A processSettings
 #processSettings["pow-miner-cuda,"]="mem_clock=810" # Miner for GRAM algo
-#processSettings["qli-runner,"]="mem_clock=5001" # Miner for QUBIC algo
+#processSettings["qli-runner,"]="mem_clock=5001,power_limit=200" # Miner for QUBIC algo
 #processSettings["xelis-taxminer,"]="mem_clock=5001" # Miner for XEL algo
 #processSettings["hashcat,"]="mem_clock=5001" # Hashcat password cracker
-#processSettings["lolMiner,--algo TON "]="mem_clock=810,core_clock=2340" # Miner for TON algo
+#processSettings["lolMiner,--algo TON "]="mem_clock=810,core_clock=2340,power_limit=225" # Miner for TON algo
 
 time_interval=60 # Seconds between each loop
 oc_change_delay=1 # Delay between resetting and setting OC
@@ -21,7 +21,7 @@ oc_change_delay=1 # Delay between resetting and setting OC
 load_config_from_url() {
     # Generate a unique URL to prevent caching (using the current timestamp)
     uniqueUrl="${configFileUrl}?$(date +%s)"
-    
+
     if curl -f -s -H "Cache-Control: no-cache" "$uniqueUrl" -o "/tmp/processSettings.conf"; then
         while IFS='=' read -r key value; do
             # Trim leading and trailing spaces
@@ -46,7 +46,7 @@ set_oc() {
     local process_arg=$3
     local settings=$4
 
-    local mem_clock core_clock
+    local mem_clock core_clock power_limit
 
     # Parse the settings
     IFS=',' read -ra kvpairs <<< "$settings"
@@ -58,6 +58,9 @@ set_oc() {
                 ;;
             core_clock)
                 core_clock=$value
+                ;;
+            power_limit)
+                power_limit=$value
                 ;;
         esac
     done
@@ -73,6 +76,13 @@ set_oc() {
         echo "$(date): Setting core OC for GPU $gpu_id ($process $process_arg) to $core_clock"
         {
             nvidia-smi -i $gpu_id -lgc $core_clock
+        } > /dev/null 2>&1
+    fi
+
+    if [[ -n "$power_limit" ]]; then
+        echo "$(date): Setting power limit for GPU $gpu_id ($process $process_arg) to $power_limit"
+        {
+            nvidia-smi -i $gpu_id -pl $power_limit
         } > /dev/null 2>&1
     fi
 }
@@ -115,7 +125,7 @@ while true; do
             for entry in "${!processSettings[@]}"; do
                 IFS=',' read -r process process_arg <<< "$entry"
                 settings=${processSettings["$entry"]}
-                
+
                 # Match commonly used characters like ., / and space
                 if [[ "$process_cmd" =~ (^|[[:space:]/])$process($|[[:space:]]) ]]; then
                     if [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]]; then
@@ -126,7 +136,7 @@ while true; do
                         break 2 # Exit both loops after setting OC for the first matching process
                     fi
                 fi
-                
+
             done
         done
     done
