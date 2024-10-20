@@ -24,20 +24,22 @@ EXISTING server:
 	docker compose down
 
 7. Backup Docker volumes data
+``
 	sudo mkdir /docker_backup
 	sudo tar -czvf /docker_backup/prometheus-data.tar.gz -C /var/lib/docker/volumes/ docker_prometheus-data
 	sudo tar -czvf /docker_backup/grafana-data.tar.gz -C /var/lib/docker/volumes/ docker_grafana-data
 	sudo tar -czvf /docker_backup/openwebui-data.tar.gz -C /var/lib/docker/volumes/ docker_openwebui-data
 	sudo tar -czvf /docker_backup/nginx-proxy-manager-data.tar.gz -C /var/lib/docker/volumes/ docker_nginx-proxy-manager-data
 	sudo tar -czvf /docker_backup/letsencrypt-data.tar.gz -C /var/lib/docker/volumes/ docker_letsencrypt-data
+``
 
-8. Backup Docker compose file
+9. Backup Docker compose file
 	sudo tar -czvf /docker_backup/docker-compose.tar.gz -C /etc/docker/ docker-compose.yml
 
-9. Backup Prometheus config file
+10. Backup Prometheus config file
 	sudo tar -czvf /docker_backup/prometheus.tar.gz -C /etc/prometheus/ prometheus.yml
 
-10. Copy zipped files to NEW server:
+11. Copy zipped files to NEW server:
 	scp *.tar.gz user@new_server_ip:/docker_backup
 
 NEW server:
