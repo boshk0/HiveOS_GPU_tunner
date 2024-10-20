@@ -25,14 +25,14 @@ EXISTING server:
 
 7. Backup Docker volumes data
    
-``
+```bash
 	sudo mkdir /docker_backup
 	sudo tar -czvf /docker_backup/prometheus-data.tar.gz -C /var/lib/docker/volumes/ docker_prometheus-data
 	sudo tar -czvf /docker_backup/grafana-data.tar.gz -C /var/lib/docker/volumes/ docker_grafana-data
 	sudo tar -czvf /docker_backup/openwebui-data.tar.gz -C /var/lib/docker/volumes/ docker_openwebui-data
 	sudo tar -czvf /docker_backup/nginx-proxy-manager-data.tar.gz -C /var/lib/docker/volumes/ docker_nginx-proxy-manager-data
 	sudo tar -czvf /docker_backup/letsencrypt-data.tar.gz -C /var/lib/docker/volumes/ docker_letsencrypt-data
-``
+```
 
 9. Backup Docker compose file
 	sudo tar -czvf /docker_backup/docker-compose.tar.gz -C /etc/docker/ docker-compose.yml
