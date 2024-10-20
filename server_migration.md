@@ -1,7 +1,7 @@
 MIGRATION PLAN for PROXY SERVER
 ======================================
 
-NEW server:
+Setup NEW server:
 ----------------
 1. Install Ubuntu Server 22.04
 
@@ -21,7 +21,7 @@ sudo gpasswd -a $USER docker
 sudo mkdir /docker_backup
 ```
 
-EXISTING server:
+Backup EXISTING server:
 --------------------
 6. Stop Docker containers
 ```bash
@@ -54,7 +54,7 @@ sudo tar -czvf /docker_backup/prometheus.tar.gz -C /etc/prometheus/ prometheus.y
 scp *.tar.gz user@new_server_ip:/docker_backup
 ```
 
-NEW server:
+Restore to NEW server:
 ----------------
 12. Extract Docker compose file
 ```bash
