@@ -24,6 +24,7 @@ EXISTING server:
 	docker compose down
 
 7. Backup Docker volumes data
+   
 ``
 	sudo mkdir /docker_backup
 	sudo tar -czvf /docker_backup/prometheus-data.tar.gz -C /var/lib/docker/volumes/ docker_prometheus-data
