@@ -32,7 +32,6 @@ docker compose down
 7. Backup Docker volumes data   
 ```bash
 sudo mkdir /docker_backup
-# Prometheus data could not be successfully restored this way (complained about data not being sequential) 
 sudo tar -czvf /docker_backup/prometheus-data.tar.gz -C /var/lib/docker/volumes/ docker_prometheus-data
 sudo tar -czvf /docker_backup/grafana-data.tar.gz -C /var/lib/docker/volumes/ docker_grafana-data
 sudo tar -czvf /docker_backup/openwebui-data.tar.gz -C /var/lib/docker/volumes/ docker_openwebui-data
@@ -76,6 +75,7 @@ docker-compose down
 
 14. Extract zipped files into Docker volumes folder
 ```bash
+# Prometheus data could not be successfully restored this way (complained about data not being sequential) 
 sudo tar -xzvf /docker_backup/prometheus-data.tar.gz -C /var/lib/docker/volumes/
 sudo tar -xzvf /docker_backup/grafana-data.tar.gz -C /var/lib/docker/volumes/
 sudo tar -xzvf /docker_backup/openwebui-data.tar.gz -C /var/lib/docker/volumes/
