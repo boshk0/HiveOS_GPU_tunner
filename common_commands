@@ -50,11 +50,17 @@ sudo docker ps -as
 # VastAI machine ID
 cat /var/lib/vastai_kaalia/machine_id
 
-# Temporary listen on port
+# Temporary listen on port (TCP)
 nc -l 41001
 
-# Check if a port is open and port forwarding is working
+# Check if a port is open and port forwarding is working (TCP)
 # https://portchecker.co/check-it
+
+# Temporary listen on port (UDP)
+nc -u -l 41001
+
+# From another machine, check if the port is open and port forwarding is working (UDP)
+nc -u <public_ip> 41001
 
 # View Journal log (most recent)
 journalctl -e
