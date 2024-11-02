@@ -5,9 +5,9 @@ sudo apt update -y && sudo apt upgrade -y
 sudo apt install gcc make nano nvtop btop -y
 
 # Install Nvidia drivers
-#sudo apt install nvidia-drivers-550-server
-wget https://us.download.nvidia.com/XFree86/Linux-x86_64/560.35.03/NVIDIA-Linux-x86_64-560.35.03.run
-sudo sh NVIDIA-Linux-x86_64-560.35.03.run
+# Copy the file location for latest stable driver (from Download button)
+# https://www.nvidia.com/en-us/drivers/unix/linux-amd64-display-archive/
+# wget file, chmod +x, sudo ./NVIDIA...
 
 # Disable auto updates
 sudo nano /etc/apt/apt.conf.d/20auto-upgrades
