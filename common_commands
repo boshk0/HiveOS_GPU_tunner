@@ -5,9 +5,10 @@ sudo apt update -y && sudo apt upgrade -y
 sudo apt install gcc make nano nvtop btop -y
 
 # Install Nvidia drivers
-# Copy the file location for latest stable driver (from Download button)
+# First remove old drivers sudo apt remove nvidia-drivers*
+# Then copy the file location for latest stable driver (from Download button)
 # https://www.nvidia.com/en-us/drivers/unix/linux-amd64-display-archive/
-# wget file, chmod +x, sudo ./NVIDIA...
+# Finally wget file, chmod +x, sudo ./NVIDIA...
 
 # Disable auto updates
 sudo nano /etc/apt/apt.conf.d/20auto-upgrades
