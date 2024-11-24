@@ -14,7 +14,7 @@ sudo apt install gcc make nano nvtop btop -y
 # Install Nvidia drivers
 DRIVER_VERSION="565.57.01"
 installer_file="NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
-installer_url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/$(installer_file)"
+installer_url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/${installer_file}"
 wget -O $installer_file $installer_url && sudo chmod +x $installer_file && sudo ./$installer_file
 
 # Disable auto updates
