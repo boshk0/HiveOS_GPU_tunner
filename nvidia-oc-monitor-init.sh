@@ -16,10 +16,40 @@ declare -A processSettings
 
 time_interval=60 # Seconds between each loop
 oc_change_delay=1 # Delay between resetting and setting OC
+reboot_on_failure=false # Default is false. Set to true to enable automated reboots if `nvidia-smi` fails.
+
+# Function to fetch GPU indices using `nvidia-smi`
+fetch_gpu_indices() {
+    local retries=0
+    local max_retries=5
+    local retry_delay=1
+
+    while true; do
+        if output=$(timeout 5 nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null); then
+            echo "$output"
+            return 0
+        else
+            retries=$((retries + 1))
+            echo "$(date): Warning: Unable to fetch GPU information (attempt $retries/$max_retries). Retrying in $retry_delay second(s)..."
+            sleep "$retry_delay"
+        fi
+
+        if [[ $retries -ge $max_retries ]]; then
+            echo "$(date): Error: `nvidia-smi` is unresponsive after $max_retries attempts."
+            if $reboot_on_failure; then
+                echo "$(date): Rebooting system..."
+                sudo reboot --force
+            else
+                echo "$(date): Reboot is disabled. Exiting."
+                exit 1
+            fi
+        fi
+    done
+}
 
 # Function to fetch and load settings from the configuration URL
 load_config_from_url() {
-    # Generate a unique URL to prevent caching (using the current timestamp)
+    # Generate a unique URL to prevent caching (use current timestamp)
     uniqueUrl="${configFileUrl}?$(date +%s)"
 
     if curl -f -s -H "Cache-Control: no-cache" "$uniqueUrl" -o "/tmp/processSettings.conf"; then
@@ -118,7 +148,10 @@ while true; do
     # Reset OC settings at the start of each loop
     reset_oc
 
-    for gpu_id in $(nvidia-smi --query-gpu=index --format=csv,noheader); do
+    # Fetch GPU indices using the helper function
+    gpu_indices=$(fetch_gpu_indices)
+
+    for gpu_id in $gpu_indices; do
         # List processes for the specific GPU
         for pid in $(nvidia-smi -i "$gpu_id" --query-compute-apps=pid --format=csv,noheader); do
             process_cmd=$(ps -p "$pid" -o args=)
