@@ -56,8 +56,13 @@ def get_price_data(crypto, crypto_ticker):
     # Build the URL for the coingecko.com with the given parameters
 	url = f'https://www.coingecko.com/en/coins/{crypto.lower()}/btc'
 
+	# Set cookies and headers, otherwise CloudFlare will block the request
+	cookies = {"_session_id": "5e56acf9d0f4ff1b5d321b5247cd7819", "cf_clearance": "TH5NAcNlzM1BFBFQRl4BcodFS7YmRZ02On8BZQ9q8P8-1679326245-0-160"}
+	headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 Edg/110.0.1587.57"}
+
 	# Send a GET request to the URL and parse the HTML with BeautifulSoup
-	response = requests.get(url)
+	response = requests.get(url, headers=headers, cookies=cookies)
+
 	soup = BeautifulSoup(response.content, 'html.parser')
 
 	# Find the price element on the page and extract the daily price text
@@ -86,16 +91,16 @@ args = sys.argv + [None] * (7 - len(sys.argv))
 
 free_power = [
 	["FLUX", "FLUX", 62, 0, 2, 1], 
-	["KASPA", "KAS", 503, 0, 2, 1], 
-	["NEXA", "NEXA", 51.5, 0, 2, 1], 
-	["DYNEX", "DNX", 64, 0, 2, 1],
+	["KASPA", "KAS", 567, 0, 2, 1], 
+	["NEXA", "NEXA", 70.4, 0, 2, 1], 
+	["DYNEX", "DNX", 886, 0, 2, 1],
 ]
 
 paid_power = [
 	["FLUX", "FLUX", 62, 105, 2, 1], 
-	["KASPA", "KAS", 503, 62, 2, 1], 
-	["NEXA", "NEXA", 51.5, 101, 2, 1], 
-	["DYNEX", "DNX", 64, 42, 2, 1],
+	["KASPA", "KAS", 567, 82, 2, 1], 
+	["NEXA", "NEXA", 70.4, 109, 2, 1], 
+	["DYNEX", "DNX", 886, 61, 2, 1],
 ]
 
 settings = paid_power if args[1] == "paid" else free_power

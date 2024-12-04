@@ -6,7 +6,7 @@ else
   if [ -f "/profile/$1" ]
   then
     echo $1 > /profile/current.profile
-    /profile/show
+    /profile/apply
     exit 0
   else
     echo Profile does not exist
