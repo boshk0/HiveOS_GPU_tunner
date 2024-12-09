@@ -181,8 +181,7 @@ EOF
 cat << 'EOF' | sudo tee /etc/systemd/system/nvidia-oc-monitor.service
 [Unit]
 Description=NVIDIA GPU Overclock Monitoring Service
-After=multi-user.target nvidia-persistenced.service
-Requires=nvidia-persistenced.service
+After=multi-user.target
 
 [Service]
 Type=simple
