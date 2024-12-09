@@ -4,12 +4,8 @@
 sudo apt update -y && sudo apt upgrade -y
 sudo apt install gcc make nano nvtop btop -y
 
-# Download latest Nvidia drivers
-# First remove old drivers sudo apt remove nvidia-drivers*
-# Then copy the setup file location for latest stable driver (from Download button)
-# https://www.nvidia.com/en-us/drivers/unix/linux-amd64-display-archive/
-# Then wget file, chmod +x, sudo ./NVIDIA...
-# Finally reboot and clean-up
+# Check latest Nvidia driver version
+# https://www.nvidia.com/en-us/drivers/unix/
 
 # Install Nvidia drivers
 DRIVER_VERSION="565.57.01"
@@ -54,32 +50,8 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plug
 sudo groupadd docker
 sudo usermod -aG docker $USER
 
-# Show GPU statistics
-nvidia-smi -q
-
-# Set persitance mode
-sudo nvidia-smi -pm 1
-
-# Set power limit
-sudo nvidia-smi -pl 400
-
-# Lock core/memory clocks
-sudo nvidia-smi -lgc 2715
-sudo nvidia-smi -lmc 5001
-sudo nvidia-smi -lmc 10501
-
-# Set GPU Target temperature
-sudo nvidia-smi -gtt 65
-
-# Reset locked clocks
-sudo nvidia-smi -rgc
-sudo nvidia-smi -rmc
-
 # Docker cleanup
 docker system prune
-
-# List all containers with sizes
-sudo docker ps -as
 
 # VastAI machine ID
 cat /var/lib/vastai_kaalia/machine_id
