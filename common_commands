@@ -87,6 +87,9 @@ docker exec -it $(docker ps --format "{{.Names}}" | head -1) bash -c 'sid=$(scre
 # Query local API hosted in container
 docker exec -it $(docker ps --format "{{.Names}}" | head -1) wget -O - http://localhost:4444
 
+# Check NVidia OC Monitor for recent changes
+journalctl -e -u nvidia-oc-monitor -n 60 | grep "Setting"
+
 # Get GPU vendor
 lspci -vnn | grep VGA -A 11 | grep "Subsystem"
 
