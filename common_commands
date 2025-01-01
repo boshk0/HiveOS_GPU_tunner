@@ -56,6 +56,9 @@ docker system prune
 # VastAI machine ID
 cat /var/lib/vastai_kaalia/machine_id
 
+# Container info
+cat /var/lib/vastai_kaalia/data/instance_extra_logs/C.15236320
+
 # Temporary listen on port (TCP)
 nc -l 41001
 
