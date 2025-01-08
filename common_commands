@@ -59,6 +59,12 @@ cat /var/lib/vastai_kaalia/machine_id
 # Container info
 cat /var/lib/vastai_kaalia/data/instance_extra_logs/C.15236320
 
+# Check if Turbo Boost is disabled
+cat /sys/devices/system/cpu/intel_pstate/no_turbo
+
+# Disable Turbo Boost
+echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
+
 # Temporary listen on port (TCP)
 nc -l 41001
 
