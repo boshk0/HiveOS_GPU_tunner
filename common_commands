@@ -8,10 +8,13 @@ sudo apt install gcc make nano nvtop btop -y
 # https://www.nvidia.com/en-us/drivers/unix/
 
 # Install Nvidia Display Driver
-DRIVER_VERSION="565.57.01"
+DRIVER_VERSION="565.77"
 installer_file="NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
 installer_url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/${installer_file}"
 wget -O $installer_file $installer_url && sudo chmod +x $installer_file && sudo ./$installer_file
+
+# Using APT
+sudo apt install nvidia-driver-565-server
 
 # Remove Nvidia Display Driver
 sudo apt-get purge nvidia-driver-* libnvidia-* nvidia-kernel-common-* nvidia-dkms-* nvidia-utils-*
