@@ -87,8 +87,8 @@ nc -u <public_ip> 41001
 journalctl -e
 
 # Show GPU related errors
-journalctl -o short-precise -k -b -1 | grep -E "NVRM|AER|fallen"
-sudo dmesg -T | grep -E "NVRM|AER|fallen"
+journalctl -o short-precise -k -b -1 | grep -E -i "NVRM|AER|fallen|xid"
+sudo dmesg -T | grep -E -i "NVRM|AER|fallen|xid"
 
 # Show container logs
 journalctl CONTAINER_NAME=$(docker ps --format "{{.Names}}" | head -1) -f
