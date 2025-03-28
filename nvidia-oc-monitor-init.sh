@@ -119,7 +119,7 @@ set_oc() {
 
 # Function to reset overclocking
 reset_oc() {
-    echo "$(date): Resetting OC to default"
+    # echo "$(date): Resetting OC to default"
     {
         nvidia-smi -rgc
         nvidia-smi -rmc
