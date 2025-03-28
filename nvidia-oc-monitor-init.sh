@@ -63,7 +63,7 @@ load_config_from_url() {
 
             processSettings["$key"]=$value
         done < "/tmp/processSettings.conf"
-        echo "$(date): Successfully loaded configuration: $(uniqueUrl)"
+        echo "$(date): Successfully loaded configuration: $uniqueUrl"
     else
         echo "$(date): Unable to retrieve configuration. Using default configuration."
     fi
