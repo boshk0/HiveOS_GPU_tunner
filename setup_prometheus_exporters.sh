@@ -3,7 +3,7 @@
 mkdir tmp;
 cd tmp;
 
-wget https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz;
+wget https://github.com/prometheus/node_exporter/releases/download/v1.9.1/node_exporter-1.9.1.linux-amd64.tar.gz;
 
 sudo tar xvfz node_exporter-*.*-amd64.tar.gz;
 
@@ -39,7 +39,7 @@ sudo rm tmp -r
 mkdir tmp;
 cd tmp;
 
-wget https://github.com/utkuozdemir/nvidia_gpu_exporter/releases/download/v1.2.0/nvidia_gpu_exporter_1.2.0_linux_x86_64.tar.gz;
+wget https://github.com/utkuozdemir/nvidia_gpu_exporter/releases/download/v1.3.1/nvidia_gpu_exporter_1.3.1_linux_x86_64.tar.gz;
 
 sudo tar xvfz nvidia_gpu_exporter*.*tar.gz;
 
