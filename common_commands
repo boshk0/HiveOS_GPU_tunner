@@ -19,6 +19,11 @@ sudo apt install nvidia-driver-565-server
 # Remove Nvidia Display Driver
 sudo apt-get purge nvidia-driver-* libnvidia-* nvidia-kernel-common-* nvidia-dkms-* nvidia-utils-*
 
+# Blacklist Nouveau Nvidia driver
+sudo bash -c "echo blacklist nouveau > /etc/modprobe.d/blacklist-nvidia-nouveau.conf"
+sudo bash -c "echo options nouveau modeset=0 >> /etc/modprobe.d/blacklist-nvidia-nouveau.conf"
+sudo update-initramfs -u
+
 # Disable auto updates
 sudo nano /etc/apt/apt.conf.d/20auto-upgrades
 APT::Periodic::Update-Package-Lists "0";
