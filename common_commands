@@ -2,7 +2,7 @@
 
 # Setup machine
 sudo apt update -y && sudo apt upgrade -y
-sudo apt install gcc make nano nvtop btop -y
+sudo apt install gcc make nano nvtop btop sudo python3-pip -y
 
 # Check latest Nvidia driver version
 # https://www.nvidia.com/en-us/drivers/unix/
