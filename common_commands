@@ -8,7 +8,7 @@ sudo apt install gcc make nano nvtop btop -y
 # https://www.nvidia.com/en-us/drivers/unix/
 
 # Install Nvidia Display Driver
-DRIVER_VERSION="575.51.02"
+DRIVER_VERSION="570.169"
 installer_file="NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
 installer_url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/${installer_file}"
 wget -O $installer_file $installer_url && sudo chmod +x $installer_file && sudo ./$installer_file
@@ -119,6 +119,9 @@ nvidia-smi topo -m
 # Cleanup docker images excluding the most common
 docker rmi $(sudo docker image ls | grep -Ev "pytorch/pytorch.*|amazonaws.*|nvidia/cuda.*|ubuntu.*|runpod/stable-diffusion.*" | awk 'NR>1 {print $3}')
 docker builder prune -f
+
+# Prune all images older than 30 days
+docker image prune --all --filter until=720h
 
 # Show total/available disk space
 df -h
