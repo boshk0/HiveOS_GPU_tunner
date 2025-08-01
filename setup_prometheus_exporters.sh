@@ -42,4 +42,5 @@ sudo wget -q -O /etc/systemd/system/nvidia_gpu_exporter.service https://raw.gith
 sudo systemctl daemon-reload;
 sudo systemctl enable nvidia_gpu_exporter;
 sudo systemctl start nvidia_gpu_exporter;
+sudo systemctl status nvidia_gpu_exporter;
 
