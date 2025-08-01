@@ -36,11 +36,10 @@ sudo rm tmp -r
 
 #---------------------------------------------------------
 
-bash -c "\
-sudo wget -q -O /usr/local/bin/nvidia_gpu_exporter.sh https://raw.githubusercontent.com/boshk0/gddr6_temps/master/nvidia_gpu_exporter.sh && \
-sudo chmod +x /usr/local/bin/nvidia_gpu_exporter.sh && \
-sudo wget -q -O /etc/systemd/system/nvidia_gpu_exporter.service https://raw.githubusercontent.com/boshk0/gddr6_temps/master/nvidia_gpu_exporter.service && \
-sudo systemctl daemon-reload && \
-sudo systemctl enable nvidia_gpu_exporter && \
-sudo systemctl start nvidia_gpu_exporter"
+sudo wget -q -O /usr/local/bin/nvidia_gpu_exporter.sh https://raw.githubusercontent.com/boshk0/gddr6_temps/master/nvidia_gpu_exporter.sh;
+sudo chmod +x /usr/local/bin/nvidia_gpu_exporter.sh;
+sudo wget -q -O /etc/systemd/system/nvidia_gpu_exporter.service https://raw.githubusercontent.com/boshk0/gddr6_temps/master/nvidia_gpu_exporter.service;
+sudo systemctl daemon-reload;
+sudo systemctl enable nvidia_gpu_exporter;
+sudo systemctl start nvidia_gpu_exporter;
 
