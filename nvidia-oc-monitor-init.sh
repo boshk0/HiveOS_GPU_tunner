@@ -96,21 +96,21 @@ set_oc() {
     done
 
     if [[ -n "$mem_clock" ]]; then
-        echo "$(date): Setting memory OC for GPU $gpu_id ($process $process_arg) to $mem_clock"
+        echo "$(date): Setting max memory clock frequency for GPU $gpu_id ($process $process_arg) to $mem_clock Hz"
         {
-            nvidia-smi -i $gpu_id -lmc $mem_clock
+            nvidia-smi -i $gpu_id -lmc 0,$mem_clock
         } > /dev/null 2>&1
     fi
 
     if [[ -n "$core_clock" ]]; then
-        echo "$(date): Setting core OC for GPU $gpu_id ($process $process_arg) to $core_clock"
+        echo "$(date): Setting max core clock frequency for GPU $gpu_id ($process $process_arg) to $core_clock Hz"
         {
-            nvidia-smi -i $gpu_id -lgc $core_clock
+            nvidia-smi -i $gpu_id -lgc 0,$core_clock
         } > /dev/null 2>&1
     fi
 
     if [[ -n "$power_limit" ]]; then
-        echo "$(date): Setting power limit for GPU $gpu_id ($process $process_arg) to $power_limit"
+        echo "$(date): Setting power limit for GPU $gpu_id ($process $process_arg) to $power_limit W"
         {
             nvidia-smi -i $gpu_id -pl $power_limit
         } > /dev/null 2>&1
