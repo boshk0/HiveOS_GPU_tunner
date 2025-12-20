@@ -125,7 +125,7 @@ reset_oc() {
         nvidia-smi -rmc
 
         nvidia-smi -pm 1           # Persistence mode
-        nvidia-smi -pl 450         # Power limit
+        nvidia-smi -pl 600         # Power limit
         nvidia-smi -gtt 65         # Temperature limit
     } > /dev/null 2>&1
 }
