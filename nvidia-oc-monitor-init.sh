@@ -124,8 +124,10 @@ reset_oc() {
         nvidia-smi -rgc
         nvidia-smi -rmc
 
+        MAX_POWER=$(nvidia-smi -q -d POWER | awk '/GPU Power Readings/,/Power Samples/ {if (/Max Power Limit/) print $5}')
+
         nvidia-smi -pm 1           # Persistence mode
-        nvidia-smi -pl 600         # Power limit
+        nvidia-smi -pl $MAX_POWER  # Power limit
         nvidia-smi -gtt 65         # Temperature limit
     } > /dev/null 2>&1
 }
