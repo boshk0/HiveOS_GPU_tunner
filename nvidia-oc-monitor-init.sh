@@ -3,221 +3,189 @@
 cat << 'EOF' | sudo tee /usr/local/bin/nvidia-oc-monitor
 #!/bin/bash
 
+# ============================================================
 # Operating mode: process | thermal
+# ============================================================
 MODE="thermal"
 
-# Configuration file URL
+# ============================================================
+# Configuration
+# ============================================================
 configFileUrl="https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/nvidia-oc-monitor.conf"
 
-# Define an associative array for process settings with arguments, memory, core clocks, and power limit
 declare -A processSettings
-#processSettings["pow-miner-cuda,"]="mem_clock=810" # Miner for GRAM algo
-#processSettings["qli-runner,"]="mem_clock=5001,power_limit=200" # Miner for QUBIC algo
-#processSettings["xelis-taxminer,"]="mem_clock=5001" # Miner for XEL algo
-#processSettings["hashcat,"]="mem_clock=5001" # Hashcat password cracker
-#processSettings["lolMiner,--algo TON "]="mem_clock=810,core_clock=2340,power_limit=225" # Miner for TON algo
 
-time_interval=60 # Seconds between each loop
-oc_change_delay=1 # Delay between resetting and setting OC
-reboot_on_failure=false # Default is false. Set to true to enable automated reboots if `nvidia-smi` fails.
+time_interval=60
+oc_change_delay=1
+reboot_on_failure=false
 
+# ============================================================
 # Thermal power control settings
+# ============================================================
 TEMP_HIGH=75
 TEMP_CRITICAL=81
 TEMP_RECOVER=73
+TEMP_EMERGENCY=88
 
 PL_STEP_DOWN=10
 PL_STEP_UP=15
-
 CHECK_INTERVAL=5
 
 declare -A CURRENT_PL
 
-thermal_power_control() {
-  for gpu_id in $(fetch_gpu_indices); do
-    TEMP=$(nvidia-smi -i $gpu_id --query-gpu=temperature.gpu --format=csv,noheader,nounits)
-
-    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
-      CURRENT_PL[$gpu_id]=$(nvidia-smi -i $gpu_id --query-gpu=power.limit --format=csv,noheader,nounits)
-    fi
-
-    PL=${CURRENT_PL[$gpu_id]}
-
-    if [ "$TEMP" -ge "$TEMP_CRITICAL" ]; then
-      PL=$((PL - PL_STEP_DOWN * 2))
-    elif [ "$TEMP" -gt "$TEMP_HIGH" ]; then
-      PL=$((PL - PL_STEP_DOWN))
-    elif [ "$TEMP" -le "$TEMP_RECOVER" ]; then
-      PL=$((PL + PL_STEP_UP))
-    fi
-
-    MAX_PL=$(nvidia-smi -i $gpu_id --query-gpu=power.max_limit --format=csv,noheader,nounits)
-    MIN_PL=400
-
-    (( PL > MAX_PL )) && PL=$MAX_PL
-    (( PL < MIN_PL )) && PL=$MIN_PL
-
-    if [ "${CURRENT_PL[$gpu_id]}" -ne "$PL" ]; then
-      nvidia-smi -i $gpu_id -pl $PL > /dev/null 2>&1
-      CURRENT_PL[$gpu_id]=$PL
-    fi
-  done
-}
-
-# Function to fetch GPU indices using `nvidia-smi`
+# ============================================================
+# GPU discovery (robust)
+# ============================================================
 fetch_gpu_indices() {
     local retries=0
     local max_retries=5
-    local retry_delay=1
 
     while true; do
         if output=$(timeout 5 nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null); then
             echo "$output"
             return 0
-        else
-            retries=$((retries + 1))
-            echo "$(date): Warning: Unable to fetch GPU information (attempt $retries/$max_retries). Retrying in $retry_delay second(s)..."
-            sleep "$retry_delay"
         fi
 
+        retries=$((retries + 1))
+        sleep 1
+
         if [[ $retries -ge $max_retries ]]; then
-            echo "$(date): Error: `nvidia-smi` is unresponsive after $max_retries attempts."
             if $reboot_on_failure; then
-                echo "$(date): Rebooting system..."
-                sudo reboot --force
+                reboot --force
             else
-                echo "$(date): Reboot is disabled. Exiting."
                 exit 1
             fi
         fi
     done
 }
 
-# Function to fetch and load settings from the configuration URL
+# ============================================================
+# Thermal PL controller (gradual + hysteresis)
+# ============================================================
+thermal_power_control() {
+  for gpu_id in $(fetch_gpu_indices); do
+    TEMP=$(nvidia-smi -i "$gpu_id" --query-gpu=temperature.gpu --format=csv,noheader,nounits)
+
+    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
+      CURRENT_PL[$gpu_id]=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits)
+    fi
+
+    PL=${CURRENT_PL[$gpu_id]}
+
+    MAX_PL=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits)
+    MIN_PL=$(nvidia-smi -i "$gpu_id" --query-gpu=power.min_limit --format=csv,noheader,nounits)
+
+    if (( TEMP >= TEMP_EMERGENCY )); then
+        PL=$MIN_PL
+    elif (( TEMP >= TEMP_CRITICAL )); then
+        PL=$((PL - PL_STEP_DOWN * 2))
+    elif (( TEMP > TEMP_HIGH )); then
+        PL=$((PL - PL_STEP_DOWN))
+    elif (( TEMP <= TEMP_RECOVER )); then
+        PL=$((PL + PL_STEP_UP))
+    fi
+
+    (( PL > MAX_PL )) && PL=$MAX_PL
+    (( PL < MIN_PL )) && PL=$MIN_PL
+
+    if [[ "${CURRENT_PL[$gpu_id]}" -ne "$PL" ]]; then
+        nvidia-smi -i "$gpu_id" -pl "$PL" > /dev/null 2>&1
+        CURRENT_PL[$gpu_id]=$PL
+    fi
+  done
+}
+
+# ============================================================
+# Load config
+# ============================================================
 load_config_from_url() {
-    # Generate a unique URL to prevent caching (use current timestamp)
     uniqueUrl="${configFileUrl}?$(date +%s)"
 
-    if curl -f -s -H "Cache-Control: no-cache" -H "Pragma: no-cache" "$uniqueUrl" -o "/tmp/processSettings.conf"; then
+    if curl -fs "$uniqueUrl" -o /tmp/processSettings.conf; then
         while IFS='=' read -r key value; do
-            # Trim leading and trailing spaces
-            key=$(echo $key | xargs)
-            value=$(echo $value | xargs)
-
-            # Skip lines that are empty or start with '#' after trimming
-            [[ -z "$key" || $key == \#* ]] && continue
-
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs)
+            [[ -z "$key" || "$key" == \#* ]] && continue
             processSettings["$key"]=$value
-        done < "/tmp/processSettings.conf"
-        echo "$(date): Successfully loaded configuration: $uniqueUrl"
-    else
-        echo "$(date): Unable to retrieve configuration. Using default configuration."
+        done < /tmp/processSettings.conf
     fi
 }
 
-# Function to set overclocking
+# ============================================================
+# OC functions (unchanged logic)
+# ============================================================
 set_oc() {
     local gpu_id=$1
-    local process=$2
-    local process_arg=$3
     local settings=$4
 
     local mem_clock core_clock power_limit
 
-    # Parse the settings
     IFS=',' read -ra kvpairs <<< "$settings"
     for kv in "${kvpairs[@]}"; do
         IFS='=' read -r key value <<< "$kv"
         case "$key" in
-            mem_clock)
-                mem_clock=$value
-                ;;
-            core_clock)
-                core_clock=$value
-                ;;
-            power_limit)
-                power_limit=$value
-                ;;
+            mem_clock) mem_clock=$value ;;
+            core_clock) core_clock=$value ;;
+            power_limit) power_limit=$value ;;
         esac
     done
 
-    if [[ -n "$mem_clock" ]]; then
-        echo "$(date): Setting max memory clock frequency for GPU $gpu_id ($process $process_arg) to $mem_clock Hz"
-        {
-            nvidia-smi -i $gpu_id -lmc 0,$mem_clock
-        } > /dev/null 2>&1
-    fi
-
-    if [[ -n "$core_clock" ]]; then
-        echo "$(date): Setting max core clock frequency for GPU $gpu_id ($process $process_arg) to $core_clock Hz"
-        {
-            nvidia-smi -i $gpu_id -lgc 0,$core_clock
-        } > /dev/null 2>&1
-    fi
-
-    if [[ -n "$power_limit" ]]; then
-        echo "$(date): Setting power limit for GPU $gpu_id ($process $process_arg) to $power_limit W"
-        {
-            nvidia-smi -i $gpu_id -pl $power_limit
-        } > /dev/null 2>&1
-    fi
+    [[ -n "$mem_clock" ]] && nvidia-smi -i "$gpu_id" -lmc 0,"$mem_clock" > /dev/null 2>&1
+    [[ -n "$core_clock" ]] && nvidia-smi -i "$gpu_id" -lgc 0,"$core_clock" > /dev/null 2>&1
+    [[ -n "$power_limit" ]] && nvidia-smi -i "$gpu_id" -pl "$power_limit" > /dev/null 2>&1
 }
 
-# Function to reset overclocking
 reset_oc() {
-    # echo "$(date): Resetting OC to default"
-    {
-        nvidia-smi -rgc
-        nvidia-smi -rmc
+    nvidia-smi -rgc > /dev/null 2>&1
+    nvidia-smi -rmc > /dev/null 2>&1
 
-        MAX_POWER=$(nvidia-smi -q -d POWER | awk '/GPU Power Readings/,/Power Samples/ {if (/Max Power Limit/) print $5}')
+    for gpu_id in $(fetch_gpu_indices); do
+        MAX_POWER=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits)
+        nvidia-smi -i "$gpu_id" -pl "$MAX_POWER" > /dev/null 2>&1
+    done
 
-        nvidia-smi -pm 1           # Persistence mode
-        nvidia-smi -pl $MAX_POWER  # Power limit
-        nvidia-smi -gtt 65         # Temperature limit
-    } > /dev/null 2>&1
+    nvidia-smi -pm 1 > /dev/null 2>&1
+    nvidia-smi -gtt 65 > /dev/null 2>&1
 }
 
-# Cleanup function for graceful shutdown
 cleanup() {
-    echo "$(date): Script is stopping, resetting OC to default..."
     reset_oc
     exit 0
 }
 
-# Trap SIGINT and SIGTERM
 trap cleanup SIGINT SIGTERM
 
-# Fetch and load the configuration at script start
+# ============================================================
+# Init
+# ============================================================
 load_config_from_url
+nvidia-smi -pm 1 > /dev/null 2>&1
 
+# ============================================================
 # Main loop
+# ============================================================
 while true; do
   case "$MODE" in
     thermal)
       thermal_power_control
-      sleep $CHECK_INTERVAL
+      sleep "$CHECK_INTERVAL"
       ;;
     process)
       reset_oc
-      gpu_indices=$(fetch_gpu_indices)
-      for gpu_id in $gpu_indices; do
+      for gpu_id in $(fetch_gpu_indices); do
         for pid in $(nvidia-smi -i "$gpu_id" --query-compute-apps=pid --format=csv,noheader); do
           process_cmd=$(ps -p "$pid" -o args=)
           for entry in "${!processSettings[@]}"; do
             IFS=',' read -r process process_arg <<< "$entry"
-            settings=${processSettings["$entry"]}
-            if [[ "$process_cmd" =~ (^|[[:space:]/])$process($|[[:space:]]) ]]; then
-              if [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]]; then
-                sleep $oc_change_delay
-                set_oc "$gpu_id" "$process" "$process_arg" "$settings"
-                break 2
-              fi
+            if [[ "$process_cmd" =~ $process ]]; then
+              [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]] && \
+              sleep "$oc_change_delay" && \
+              set_oc "$gpu_id" "$process" "$process_arg" "${processSettings[$entry]}"
             fi
           done
         done
       done
-      sleep $time_interval
+      sleep "$time_interval"
       ;;
   esac
 done
