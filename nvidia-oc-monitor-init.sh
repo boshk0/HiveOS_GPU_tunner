@@ -3,6 +3,9 @@
 cat << 'EOF' | sudo tee /usr/local/bin/nvidia-oc-monitor
 #!/bin/bash
 
+# Operating mode: process | thermal
+MODE="thermal"
+
 # Configuration file URL
 configFileUrl="https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/nvidia-oc-monitor.conf"
 
@@ -17,6 +20,49 @@ declare -A processSettings
 time_interval=60 # Seconds between each loop
 oc_change_delay=1 # Delay between resetting and setting OC
 reboot_on_failure=false # Default is false. Set to true to enable automated reboots if `nvidia-smi` fails.
+
+# Thermal power control settings
+TEMP_HIGH=75
+TEMP_CRITICAL=81
+TEMP_RECOVER=73
+
+PL_STEP_DOWN=10
+PL_STEP_UP=15
+
+CHECK_INTERVAL=5
+
+declare -A CURRENT_PL
+
+thermal_power_control() {
+  for gpu_id in $(fetch_gpu_indices); do
+    TEMP=$(nvidia-smi -i $gpu_id --query-gpu=temperature.gpu --format=csv,noheader,nounits)
+
+    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
+      CURRENT_PL[$gpu_id]=$(nvidia-smi -i $gpu_id --query-gpu=power.limit --format=csv,noheader,nounits)
+    fi
+
+    PL=${CURRENT_PL[$gpu_id]}
+
+    if [ "$TEMP" -ge "$TEMP_CRITICAL" ]; then
+      PL=$((PL - PL_STEP_DOWN * 2))
+    elif [ "$TEMP" -gt "$TEMP_HIGH" ]; then
+      PL=$((PL - PL_STEP_DOWN))
+    elif [ "$TEMP" -le "$TEMP_RECOVER" ]; then
+      PL=$((PL + PL_STEP_UP))
+    fi
+
+    MAX_PL=$(nvidia-smi -i $gpu_id --query-gpu=power.max_limit --format=csv,noheader,nounits)
+    MIN_PL=400
+
+    (( PL > MAX_PL )) && PL=$MAX_PL
+    (( PL < MIN_PL )) && PL=$MIN_PL
+
+    if [ "${CURRENT_PL[$gpu_id]}" -ne "$PL" ]; then
+      nvidia-smi -i $gpu_id -pl $PL > /dev/null 2>&1
+      CURRENT_PL[$gpu_id]=$PL
+    fi
+  done
+}
 
 # Function to fetch GPU indices using `nvidia-smi`
 fetch_gpu_indices() {
@@ -147,36 +193,33 @@ load_config_from_url
 
 # Main loop
 while true; do
-    # Reset OC settings at the start of each loop
-    reset_oc
-
-    # Fetch GPU indices using the helper function
-    gpu_indices=$(fetch_gpu_indices)
-
-    for gpu_id in $gpu_indices; do
-        # List processes for the specific GPU
+  case "$MODE" in
+    thermal)
+      thermal_power_control
+      sleep $CHECK_INTERVAL
+      ;;
+    process)
+      reset_oc
+      gpu_indices=$(fetch_gpu_indices)
+      for gpu_id in $gpu_indices; do
         for pid in $(nvidia-smi -i "$gpu_id" --query-compute-apps=pid --format=csv,noheader); do
-            process_cmd=$(ps -p "$pid" -o args=)
-            for entry in "${!processSettings[@]}"; do
-                IFS=',' read -r process process_arg <<< "$entry"
-                settings=${processSettings["$entry"]}
-
-                # Match commonly used characters like ., / and space
-                if [[ "$process_cmd" =~ (^|[[:space:]/])$process($|[[:space:]]) ]]; then
-                    if [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]]; then
-                        # Give GPU time between each OC settings change (reset/set)
-                        sleep $oc_change_delay
-
-                        set_oc "$gpu_id" "$process" "$process_arg" "${settings}"
-                        break 2 # Exit both loops after setting OC for the first matching process
-                    fi
-                fi
-
-            done
+          process_cmd=$(ps -p "$pid" -o args=)
+          for entry in "${!processSettings[@]}"; do
+            IFS=',' read -r process process_arg <<< "$entry"
+            settings=${processSettings["$entry"]}
+            if [[ "$process_cmd" =~ (^|[[:space:]/])$process($|[[:space:]]) ]]; then
+              if [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]]; then
+                sleep $oc_change_delay
+                set_oc "$gpu_id" "$process" "$process_arg" "$settings"
+                break 2
+              fi
+            fi
+          done
         done
-    done
-
-    sleep $time_interval
+      done
+      sleep $time_interval
+      ;;
+  esac
 done
 EOF
 
