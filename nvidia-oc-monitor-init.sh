@@ -69,16 +69,13 @@ thermal_power_control() {
     if [[ -z "$TEMP_OUTPUT" || "$TEMP_OUTPUT" == "[N/A]" ]]; then
       continue
     fi
-    TEMP=$(echo "$TEMP_OUTPUT" | awk '{print int($1)}' 2>/dev/null)
-    if [[ $? -ne 0 ]] || [[ -z "$TEMP" ]]; then
-      continue
-    fi
+    TEMP=$(echo "$TEMP_OUTPUT" | awk '{print int($1)}')
 
     # Get current power limit with error handling
     if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
       PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null)
       if [[ -n "$PL_OUTPUT" && "$PL_OUTPUT" != "[N/A]" ]]; then
-        CURRENT_PL[$gpu_id]="$PL_OUTPUT"
+        CURRENT_PL[$gpu_id]=$(echo "$PL_OUTPUT" | awk '{print int($1)}')
       fi
     fi
 
@@ -87,11 +84,8 @@ thermal_power_control() {
       continue
     fi
     
-    # Convert to integer using awk to handle .00 suffix
-    PL=$(echo "${CURRENT_PL[$gpu_id]}" | awk '{print int($1)}' 2>/dev/null)
-    if [[ $? -ne 0 ]] || [[ -z "$PL" ]]; then
-      continue
-    fi
+    # Use the already converted PL value
+    PL=${CURRENT_PL[$gpu_id]}
 
     # Get power limits with error handling
     MAX_PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null)
@@ -104,12 +98,8 @@ thermal_power_control() {
       continue
     fi
     
-    MAX_PL=$(echo "$MAX_PL_OUTPUT" | awk '{print int($1)}' 2>/dev/null)
-    MIN_PL=$(echo "$MIN_PL_OUTPUT" | awk '{print int($1)}' 2>/dev/null)
-    
-    if [[ $? -ne 0 ]] || [[ -z "$MAX_PL" ]] || [[ -z "$MIN_PL" ]]; then
-      continue
-    fi
+    MAX_PL=$(echo "$MAX_PL_OUTPUT" | awk '{print int($1)}')
+    MIN_PL=$(echo "$MIN_PL_OUTPUT" | awk '{print int($1)}')
 
     # Apply thermal control logic
     if (( TEMP >= TEMP_EMERGENCY )); then
