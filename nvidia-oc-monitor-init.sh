@@ -24,7 +24,7 @@ reboot_on_failure=false
 # ============================================================
 TEMP_HIGH=83
 TEMP_CRITICAL=85
-TEMP_RECOVER=80
+TEMP_RECOVER=79
 TEMP_EMERGENCY=88
 
 PL_STEP_DOWN=10
