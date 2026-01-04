@@ -64,16 +64,16 @@ fetch_gpu_indices() {
 # ============================================================
 thermal_power_control() {
   for gpu_id in $(fetch_gpu_indices); do
-    TEMP=$(nvidia-smi -i "$gpu_id" --query-gpu=temperature.gpu --format=csv,noheader,nounits)
+    TEMP=$(to_int "$(nvidia-smi -i "$gpu_id" --query-gpu=temperature.gpu --format=csv,noheader,nounits)")
 
     if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
-      CURRENT_PL[$gpu_id]=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits)
+      CURRENT_PL[$gpu_id]=$(to_int "$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits)")
     fi
 
     PL=${CURRENT_PL[$gpu_id]}
 
-    MAX_PL=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits)
-    MIN_PL=$(nvidia-smi -i "$gpu_id" --query-gpu=power.min_limit --format=csv,noheader,nounits)
+    MAX_PL=$(to_int "$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits)")
+    MIN_PL=$(to_int "$(nvidia-smi -i "$gpu_id" --query-gpu=power.min_limit --format=csv,noheader,nounits)")
 
     if (( TEMP >= TEMP_EMERGENCY )); then
         PL=$MIN_PL
