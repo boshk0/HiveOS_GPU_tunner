@@ -64,17 +64,52 @@ fetch_gpu_indices() {
 # ============================================================
 thermal_power_control() {
   for gpu_id in $(fetch_gpu_indices); do
-    TEMP=$(nvidia-smi -i "$gpu_id" --query-gpu=temperature.gpu --format=csv,noheader,nounits | xargs printf "%d")
-
-    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
-      CURRENT_PL[$gpu_id]=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits | xargs printf "%d")
+    # Get temperature with error handling
+    TEMP_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null)
+    if [[ -z "$TEMP_OUTPUT" || "$TEMP_OUTPUT" == "[N/A]" ]]; then
+      continue
+    fi
+    TEMP=$(printf "%d" "$TEMP_OUTPUT" 2>/dev/null)
+    if [[ $? -ne 0 ]]; then
+      continue
     fi
 
-    PL=$(printf "%.0f" "${CURRENT_PL[$gpu_id]}")
+    # Get current power limit with error handling
+    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
+      PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null)
+      if [[ -n "$PL_OUTPUT" && "$PL_OUTPUT" != "[N/A]" ]]; then
+        CURRENT_PL[$gpu_id]="$PL_OUTPUT"
+      fi
+    fi
 
-    MAX_PL=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits | xargs printf "%d")
-    MIN_PL=$(nvidia-smi -i "$gpu_id" --query-gpu=power.min_limit --format=csv,noheader,nounits | xargs printf "%d")
+    # Ensure we have a valid PL value
+    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
+      continue
+    fi
+    
+    PL=$(printf "%.0f" "${CURRENT_PL[$gpu_id]}" 2>/dev/null)
+    if [[ $? -ne 0 ]]; then
+      continue
+    fi
 
+    # Get power limits with error handling
+    MAX_PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null)
+    MIN_PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.min_limit --format=csv,noheader,nounits 2>/dev/null)
+    
+    if [[ -z "$MAX_PL_OUTPUT" || "$MAX_PL_OUTPUT" == "[N/A]" ]]; then
+      continue
+    fi
+    if [[ -z "$MIN_PL_OUTPUT" || "$MIN_PL_OUTPUT" == "[N/A]" ]]; then
+      continue
+    fi
+    
+    MAX_PL=$(printf "%d" "$MAX_PL_OUTPUT" 2>/dev/null)
+    MIN_PL=$(printf "%d" "$MIN_PL_OUTPUT" 2>/dev/null)
+    
+    if [[ $? -ne 0 ]]; then
+      continue
+    fi
+    
     if (( TEMP >= TEMP_EMERGENCY )); then
         PL=$MIN_PL
     elif (( TEMP >= TEMP_CRITICAL )); then
