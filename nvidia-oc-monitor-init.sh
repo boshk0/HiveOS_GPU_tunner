@@ -110,6 +110,25 @@ thermal_power_control() {
     if [[ $? -ne 0 ]] || [[ -z "$MAX_PL" ]] || [[ -z "$MIN_PL" ]]; then
       continue
     fi
+
+    # Apply thermal control logic
+    if (( TEMP >= TEMP_EMERGENCY )); then
+        PL=$MIN_PL
+    elif (( TEMP >= TEMP_CRITICAL )); then
+        PL=$((PL - PL_STEP_DOWN * 2))
+    elif (( TEMP > TEMP_HIGH )); then
+        PL=$((PL - PL_STEP_DOWN))
+    elif (( TEMP <= TEMP_RECOVER )); then
+        PL=$((PL + PL_STEP_UP))
+    fi
+
+    # Clamp power limit within bounds
+    if (( PL > MAX_PL )); then
+        PL=$MAX_PL
+    fi
+    if (( PL < MIN_PL )); then
+        PL=$MIN_PL
+    fi
     
     if (( TEMP >= TEMP_EMERGENCY )); then
         PL=$MIN_PL
