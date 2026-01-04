@@ -69,8 +69,8 @@ thermal_power_control() {
     if [[ -z "$TEMP_OUTPUT" || "$TEMP_OUTPUT" == "[N/A]" ]]; then
       continue
     fi
-    TEMP=$(printf "%d" "$TEMP_OUTPUT" 2>/dev/null)
-    if [[ $? -ne 0 ]]; then
+    TEMP=$(echo "$TEMP_OUTPUT" | awk '{print int($1)}' 2>/dev/null)
+    if [[ $? -ne 0 ]] || [[ -z "$TEMP" ]]; then
       continue
     fi
 
@@ -87,8 +87,9 @@ thermal_power_control() {
       continue
     fi
     
-    PL=$(printf "%.0f" "${CURRENT_PL[$gpu_id]}" 2>/dev/null)
-    if [[ $? -ne 0 ]]; then
+    # Convert to integer using awk to handle .00 suffix
+    PL=$(echo "${CURRENT_PL[$gpu_id]}" | awk '{print int($1)}' 2>/dev/null)
+    if [[ $? -ne 0 ]] || [[ -z "$PL" ]]; then
       continue
     fi
 
@@ -103,10 +104,10 @@ thermal_power_control() {
       continue
     fi
     
-    MAX_PL=$(printf "%d" "$MAX_PL_OUTPUT" 2>/dev/null)
-    MIN_PL=$(printf "%d" "$MIN_PL_OUTPUT" 2>/dev/null)
+    MAX_PL=$(echo "$MAX_PL_OUTPUT" | awk '{print int($1)}' 2>/dev/null)
+    MIN_PL=$(echo "$MIN_PL_OUTPUT" | awk '{print int($1)}' 2>/dev/null)
     
-    if [[ $? -ne 0 ]]; then
+    if [[ $? -ne 0 ]] || [[ -z "$MAX_PL" ]] || [[ -z "$MIN_PL" ]]; then
       continue
     fi
     
