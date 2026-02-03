@@ -34,6 +34,17 @@ CHECK_INTERVAL=5
 declare -A CURRENT_PL
 
 # ============================================================
+# Fan control settings
+# ============================================================
+TEMP_FAN_ON=65
+TEMP_FAN_OFF=50
+
+FAN_ON_SPEED=80
+FAN_CMD="/home/miner/set_fan_speed"
+
+declare -A FAN_STATE   # auto | manual
+
+# ============================================================
 # GPU discovery (robust)
 # ============================================================
 fetch_gpu_indices() {
@@ -60,66 +71,53 @@ fetch_gpu_indices() {
 }
 
 # ============================================================
+# Fan controller with hysteresis
+# ============================================================
+fan_control() {
+    local gpu_id=$1
+    local temp=$2
+
+    [[ -z "${FAN_STATE[$gpu_id]}" ]] && FAN_STATE[$gpu_id]="auto"
+
+    if (( temp >= TEMP_FAN_ON )) && [[ "${FAN_STATE[$gpu_id]}" != "manual" ]]; then
+        $FAN_CMD "$FAN_ON_SPEED" -i "$gpu_id" > /dev/null 2>&1
+        FAN_STATE[$gpu_id]="manual"
+
+    elif (( temp <= TEMP_FAN_OFF )) && [[ "${FAN_STATE[$gpu_id]}" != "auto" ]]; then
+        $FAN_CMD auto -i "$gpu_id" > /dev/null 2>&1
+        FAN_STATE[$gpu_id]="auto"
+    fi
+}
+
+# ============================================================
 # Thermal PL controller (gradual + hysteresis)
 # ============================================================
 thermal_power_control() {
   for gpu_id in $(fetch_gpu_indices); do
-    # Get temperature with error handling
     TEMP_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=temperature.gpu --format=csv,noheader,nounits 2>/dev/null)
-    if [[ -z "$TEMP_OUTPUT" || "$TEMP_OUTPUT" == "[N/A]" ]]; then
-      continue
-    fi
+    [[ -z "$TEMP_OUTPUT" || "$TEMP_OUTPUT" == "[N/A]" ]] && continue
     TEMP=$(echo "$TEMP_OUTPUT" | awk '{print int($1)}')
 
-    # Get current power limit with error handling
+    # Fan control (independent from power limit)
+    fan_control "$gpu_id" "$TEMP"
+
     if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
       PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.limit --format=csv,noheader,nounits 2>/dev/null)
-      if [[ -n "$PL_OUTPUT" && "$PL_OUTPUT" != "[N/A]" ]]; then
+      [[ -n "$PL_OUTPUT" && "$PL_OUTPUT" != "[N/A]" ]] && \
         CURRENT_PL[$gpu_id]=$(echo "$PL_OUTPUT" | awk '{print int($1)}')
-      fi
     fi
 
-    # Ensure we have a valid PL value
-    if [[ -z "${CURRENT_PL[$gpu_id]}" ]]; then
-      continue
-    fi
-    
-    # Use the already converted PL value
+    [[ -z "${CURRENT_PL[$gpu_id]}" ]] && continue
     PL=${CURRENT_PL[$gpu_id]}
 
-    # Get power limits with error handling
     MAX_PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits 2>/dev/null)
     MIN_PL_OUTPUT=$(nvidia-smi -i "$gpu_id" --query-gpu=power.min_limit --format=csv,noheader,nounits 2>/dev/null)
-    
-    if [[ -z "$MAX_PL_OUTPUT" || "$MAX_PL_OUTPUT" == "[N/A]" ]]; then
-      continue
-    fi
-    if [[ -z "$MIN_PL_OUTPUT" || "$MIN_PL_OUTPUT" == "[N/A]" ]]; then
-      continue
-    fi
-    
+    [[ -z "$MAX_PL_OUTPUT" || "$MAX_PL_OUTPUT" == "[N/A]" ]] && continue
+    [[ -z "$MIN_PL_OUTPUT" || "$MIN_PL_OUTPUT" == "[N/A]" ]] && continue
+
     MAX_PL=$(echo "$MAX_PL_OUTPUT" | awk '{print int($1)}')
     MIN_PL=$(echo "$MIN_PL_OUTPUT" | awk '{print int($1)}')
 
-    # Apply thermal control logic
-    if (( TEMP >= TEMP_EMERGENCY )); then
-        PL=$MIN_PL
-    elif (( TEMP >= TEMP_CRITICAL )); then
-        PL=$((PL - PL_STEP_DOWN * 2))
-    elif (( TEMP > TEMP_HIGH )); then
-        PL=$((PL - PL_STEP_DOWN))
-    elif (( TEMP <= TEMP_RECOVER )); then
-        PL=$((PL + PL_STEP_UP))
-    fi
-
-    # Clamp power limit within bounds
-    if (( PL > MAX_PL )); then
-        PL=$MAX_PL
-    fi
-    if (( PL < MIN_PL )); then
-        PL=$MIN_PL
-    fi
-    
     if (( TEMP >= TEMP_EMERGENCY )); then
         PL=$MIN_PL
     elif (( TEMP >= TEMP_CRITICAL )); then
@@ -157,7 +155,7 @@ load_config_from_url() {
 }
 
 # ============================================================
-# OC functions (unchanged logic)
+# OC functions
 # ============================================================
 set_oc() {
     local gpu_id=$1
@@ -187,6 +185,8 @@ reset_oc() {
     for gpu_id in $(fetch_gpu_indices); do
         MAX_POWER=$(nvidia-smi -i "$gpu_id" --query-gpu=power.max_limit --format=csv,noheader,nounits)
         nvidia-smi -i "$gpu_id" -pl "$MAX_POWER" > /dev/null 2>&1
+        $FAN_CMD auto -i "$gpu_id" > /dev/null 2>&1
+        FAN_STATE[$gpu_id]="auto"
     done
 
     nvidia-smi -pm 1 > /dev/null 2>&1
