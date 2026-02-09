@@ -22,10 +22,10 @@ reboot_on_failure=false
 # ============================================================
 # Thermal power control settings
 # ============================================================
-TEMP_HIGH=83
-TEMP_CRITICAL=85
-TEMP_RECOVER=79
-TEMP_EMERGENCY=88
+TEMP_HIGH=81
+TEMP_CRITICAL=83
+TEMP_RECOVER=75
+TEMP_EMERGENCY=85
 
 PL_STEP_DOWN=10
 PL_STEP_UP=15
