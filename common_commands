@@ -8,7 +8,7 @@ sudo apt install gcc make nano nvtop btop sudo python3-pip -y
 # https://www.nvidia.com/en-us/drivers/unix/
 
 # Install Nvidia Display Driver
-DRIVER_VERSION="570.169"
+DRIVER_VERSION="590.44.01"
 installer_file="NVIDIA-Linux-x86_64-${DRIVER_VERSION}.run"
 installer_url="https://us.download.nvidia.com/XFree86/Linux-x86_64/${DRIVER_VERSION}/${installer_file}"
 wget -O $installer_file $installer_url && sudo chmod +x $installer_file && sudo ./$installer_file
