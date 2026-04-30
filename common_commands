@@ -125,3 +125,6 @@ docker image prune --all --filter until=720h
 
 # Show total/available disk space
 df -h
+
+# Show disk usage per docker volume
+sudo du -h /var/lib/docker/volumes -d 1
