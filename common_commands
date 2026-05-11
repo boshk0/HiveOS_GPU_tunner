@@ -116,6 +116,9 @@ lspci -vnn | grep VGA -A 11 | grep "Subsystem"
 # Display NVidia Topology
 nvidia-smi topo -m
 
+# Total electrical load in kW
+nvidia-smi --query-gpu=power.draw --format=csv,nounits,noheader | awk '{sum += $1} END {print sum/1000}'
+
 # Cleanup docker images excluding the most common
 docker rmi $(sudo docker image ls | grep -Ev "pytorch/pytorch.*|amazonaws.*|nvidia/cuda.*|ubuntu.*|runpod/stable-diffusion.*" | awk 'NR>1 {print $3}')
 docker builder prune -f
