@@ -24,6 +24,8 @@ TEMP_EMERGENCY=85
 PL_STEP_DOWN=10
 PL_STEP_UP=15
 CHECK_INTERVAL=5
+# Global power limit in Watts (3500 W = 3.5 kW)
+TOTAL_POWER_LIMIT=3500
 declare -A CURRENT_PL
 # ============================================================
 # Fan control settings
@@ -79,20 +81,19 @@ thermal_power_control() {
   mapfile -t gpu_indices < <(fetch_gpu_indices)
   
   # 2. Calculate total load (Watts) across all GPUs
-  # Command: nvidia-smi --query-gpu=power.draw --format=csv,nounits,noheader | awk '{sum += $1} END {print int(sum)}'
   local total_load=0
   if local power_output=$(nvidia-smi --query-gpu=power.draw --format=csv,nounits,noheader 2>/dev/null); then
       total_load=$(echo "$power_output" | awk '{sum += $1} END {print int(sum)}')
   fi
 
-  # 3. Determine global power cap per GPU if limit exceeded (3.5 kW)
+  # 3. Determine global power cap per GPU if limit exceeded
   local global_cap=99999
   local gpu_count=${#gpu_indices[@]}
   
-  # Check if total load exceeds 3500 W
-  if (( gpu_count > 0 && ${total_load:-0} > 3500 )); then
-    # Evenly distribute the 3500W limit among GPUs
-    global_cap=$((3500 / gpu_count))
+  # Check if total load exceeds the configured TOTAL_POWER_LIMIT
+  if (( gpu_count > 0 && ${total_load:-0} > $TOTAL_POWER_LIMIT )); then
+    # Evenly distribute the limit among GPUs
+    global_cap=$((TOTAL_POWER_LIMIT / gpu_count))
   fi
 
   for gpu_id in "${gpu_indices[@]}"; do
@@ -120,7 +121,7 @@ thermal_power_control() {
     MAX_PL=$(echo "$MAX_PL_OUTPUT" | awk '{print int($1)}')
     MIN_PL=$(echo "$MIN_PL_OUTPUT" | awk '{print int($1)}')
     
-    # --- Thermal Logic (Original) ---
+    # --- Thermal Logic ---
     if (( TEMP >= TEMP_EMERGENCY )); then
         PL=$MIN_PL
     elif (( TEMP >= TEMP_CRITICAL )); then
@@ -131,7 +132,7 @@ thermal_power_control() {
         PL=$((PL + PL_STEP_UP))
     fi
     
-    # --- Global Load Limit (New) ---
+    # --- Global Load Limit ---
     # Enforce the calculated global cap regardless of thermal logic
     (( PL > global_cap )) && PL=$global_cap
     
@@ -218,7 +219,7 @@ while true; do
           for entry in "${!processSettings[@]}"; do
             IFS=',' read -r process process_arg <<< "$entry"
             if [[ "$process_cmd" =~ $process ]]; then
-              [[ -z "$process_arg" || "$process_cmd" == *"$process_arg"* ]] && \
+              [[ -z "$process_arg" || "$process_cmd" == _"$process_arg"_ ]] && \
               sleep "$oc_change_delay" && \
               set_oc "$gpu_id" "$process" "$process_arg" "${processSettings[$entry]}"
             fi
