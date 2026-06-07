@@ -12,7 +12,7 @@ MODE="thermal"
 # ============================================================  
 TEMP_HIGH=71  
 TEMP_CRITICAL=83  
-TEMP_RECOVER=60
+TEMP_RECOVER=50
 TEMP_EMERGENCY=85  
 PL_STEP_DOWN=10  
 PL_STEP_UP=15  
