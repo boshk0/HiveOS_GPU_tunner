@@ -91,6 +91,9 @@ nc -u -l 41001
 # From another machine, check if the port is open and port forwarding is working (UDP)
 nc -u <public_ip> 41001
 
+# Check nvme temps
+for d in /sys/class/hwmon/hwmon{0,1}; do echo "=== $(cat $d/name) ==="; for i in temp{1,2,3}_input; do l="${i/_input/_label}"; printf "  %s: %.1f° C\n" "$(cat $d/$l)" $(awk '{print $1/1000}' $d/$i); done; done
+
 # View Journal log (most recent)
 journalctl -e
 
