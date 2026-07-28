@@ -135,5 +135,8 @@ docker image prune --all --filter until=720h
 # Show total/available disk space
 df -h
 
+# Show all active containers commulative bandwidth
+docker ps --format '{{.ID}} {{.Names}}' | while read id name; do pid=$(docker inspect "$id" --format '{{.State.Pid}}'); [ "$pid" -gt 0 ] && awk -v n="$name" 'NR>2 && $1!="lo:" {rx+=$2; tx+=$10} END{printf "{\"name\":\"%s\",\"rx_gb\":%.2f,\"tx_gb\":%.2f}\n", n, rx/1073741824, tx/1073741824}' /proc/$pid/net/dev; done | jq -s '.'
+
 # Show disk usage per docker volume
 sudo du -h /var/lib/docker/volumes -d 1
