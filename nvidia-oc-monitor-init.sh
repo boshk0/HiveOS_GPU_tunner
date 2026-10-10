@@ -1,7 +1,21 @@
 #wget -qO- https://raw.githubusercontent.com/boshk0/HiveOS_GPU_tunner/main/nvidia-oc-monitor-init.sh | bash
+#
+# PATCHED VARIANT — adds a configurable per-GPU power cap (default 400 W).
+# Every change from the upstream script is marked with  # --- PATCH ---
+#
+# Configure without editing this file:
+#   sudo systemctl edit nvidia-oc-monitor     ->  [Service] Environment="GPU_POWER_CAP=350"
+# or edit /etc/nvidia-oc-monitor.conf         (created below, wins over systemd env)
 
 cat << 'EOF' | sudo tee /usr/local/bin/nvidia-oc-monitor
 #!/bin/bash
+
+# ============================================================
+# Configuration source of truth  # --- PATCH ---
+# Precedence: /etc/nvidia-oc-monitor.conf  >  systemd Environment=  >  defaults below
+# ============================================================
+CONFIG_FILE="${OC_MONITOR_CONFIG:-/etc/nvidia-oc-monitor.conf}"
+[[ -r "$CONFIG_FILE" ]] && . "$CONFIG_FILE"
 
 # ============================================================  
 # Thermal power control settings  
@@ -13,11 +27,18 @@ TEMP_RECOVER=50
 PL_STEP_DOWN=10  
 PL_STEP_UP=15  
 
-CHECK_INTERVAL=5  
+CHECK_INTERVAL=${CHECK_INTERVAL:-5}
 
 # Global power limit in Watts (3500 W = 3.5 kW)  
-TOTAL_POWER_LIMIT=3500  
+TOTAL_POWER_LIMIT=${TOTAL_POWER_LIMIT:-3500}
 declare -A CURRENT_PL  
+
+# ============================================================
+# Per-GPU power cap  # --- PATCH ---
+# Hard ceiling applied to every GPU, always (not only when the rig is over budget).
+# 0 disables the cap and falls back to the hardware max_limit.
+# ============================================================
+GPU_POWER_CAP=${GPU_POWER_CAP:-400}
 
 # ============================================================  
 # Fan control settings  
@@ -48,6 +69,16 @@ fetch_gpu_indices() {
 }  
 
 GPUS=()  
+# ============================================================
+# Effective ceiling for one GPU  # --- PATCH ---
+# min(hardware max_limit, GPU_POWER_CAP) — keeps us inside what the card accepts.
+# ============================================================
+effective_cap() {
+    local hw_max=$1
+    local cap=$hw_max
+    (( GPU_POWER_CAP > 0 && GPU_POWER_CAP < hw_max )) && cap=$GPU_POWER_CAP
+    echo "$cap"
+}
 # ============================================================  
 # Fan controller with hysteresis  
 # ============================================================  
@@ -124,6 +155,14 @@ thermal_power_control() {
             pl=$((pl + PL_STEP_UP))  
         fi  
 
+        # --- Per-GPU Power Cap  # --- PATCH ---
+        # Applied BEFORE the hardware bounds so the recovery ramp (pl + PL_STEP_UP)
+        # can never climb back above the cap, and so the cap is enforced on the very
+        # first pass even when temps sit in the dead band.
+        local cap
+        cap=$(effective_cap "$max_pl")
+        (( pl > cap )) && pl=$cap
+
         # --- Global Load Limit ---  
         (( pl > global_cap )) && pl=$global_cap  
 
@@ -145,19 +184,26 @@ reset_oc() {
     local gpu_count=${#GPUS[@]}  
     [[ $gpu_count -eq 0 ]] && return 0  
 
-    # Batch query max power limits  
+    # Batch query power limits
+    # --- PATCH: min_limit is queried too, so a cap below the card's floor is
+    # clamped instead of handed to nvidia-smi, which would reject it. ---
     local batch_output  
-    batch_output=$(nvidia-smi --query-gpu=power.max_limit --format=csv,noheader 2>/dev/null) || return 0  
+    batch_output=$(nvidia-smi --query-gpu=power.max_limit,power.min_limit --format=csv,noheader 2>/dev/null) || return 0  
 
     local idx=0  
-    while IFS= read -r max_power_raw; do  
+    while IFS=',' read -r max_power_raw min_power_raw; do  
         local gpu_id=${GPUS[$idx]}  
         idx=$((idx + 1))  
 
         local max_power=$(echo "$max_power_raw" | awk '{print int($1)}')  
+        local min_power=$(echo "$min_power_raw" | awk '{print int($1)}')  
         [[ "$max_power_raw" == *"[N/A]"* ]] && continue  
 
-        nvidia-smi -i "$gpu_id" -pl "$max_power" > /dev/null 2>&1  
+        # --- PATCH: reset to the cap (clamped into [min_limit, max_limit]), not to the hardware max ---
+        local target
+        target=$(effective_cap "$max_power")
+        (( min_power > 0 && target < min_power )) && target=$min_power
+        nvidia-smi -i "$gpu_id" -pl "$target" > /dev/null 2>&1  
         $FAN_CMD auto -i "$gpu_id" > /dev/null 2>&1  
         FAN_STATE[$gpu_id]="auto"  
     done <<< "$batch_output"  
@@ -178,6 +224,25 @@ nvidia-smi -pm 1 > /dev/null 2>&1
 # Discover GPUs once at startup (robust, cached)  
 # ============================================================  
 mapfile -t GPUS < <(fetch_gpu_indices)  
+# ============================================================
+# Startup report + cap sanity check  # --- PATCH ---
+# The cap is clamped to [min_limit, max_limit] per GPU, so an out-of-range value
+# is silently rounded to the nearest bound. Warn instead of hiding it.
+# ============================================================
+echo "nvidia-oc-monitor: GPUs=${#GPUS[@]} GPU_POWER_CAP=${GPU_POWER_CAP}W TOTAL_POWER_LIMIT=${TOTAL_POWER_LIMIT}W"
+if (( GPU_POWER_CAP > 0 )); then
+    nvidia-smi --query-gpu=index,power.min_limit,power.max_limit --format=csv,noheader 2>/dev/null |
+    while IFS=',' read -r g min max; do
+        g=$(echo "$g" | tr -d ' '); min=$(echo "$min" | awk '{print int($1)}'); max=$(echo "$max" | awk '{print int($1)}')
+        [[ "$min" =~ ^[0-9]+$ && "$max" =~ ^[0-9]+$ ]] || continue
+        (( min > 0 && max > 0 )) || continue
+        if (( GPU_POWER_CAP < min )); then
+            echo "WARNING: GPU $g cap ${GPU_POWER_CAP}W is below its min_limit ${min}W -> will use ${min}W"
+        elif (( GPU_POWER_CAP > max )); then
+            echo "WARNING: GPU $g cap ${GPU_POWER_CAP}W is above its max_limit ${max}W -> will use ${max}W"
+        fi
+    done
+fi
 # ============================================================  
 # Main loop  
 # ============================================================  
@@ -194,6 +259,9 @@ After=multi-user.target
 
 [Service]
 Type=simple
+# --- PATCH: per-GPU power cap, change here or in /etc/nvidia-oc-monitor.conf ---
+Environment="GPU_POWER_CAP=400"
+EnvironmentFile=-/etc/nvidia-oc-monitor.conf
 ExecStartPre=/usr/bin/nvidia-smi
 ExecStart=/usr/local/bin/nvidia-oc-monitor
 
@@ -201,8 +269,21 @@ ExecStart=/usr/local/bin/nvidia-oc-monitor
 WantedBy=multi-user.target
 EOF
 
+# --- PATCH: create the config file once, never clobber an existing one ---
+if [[ ! -f /etc/nvidia-oc-monitor.conf ]]; then
+cat << 'EOF' | sudo tee /etc/nvidia-oc-monitor.conf
+# Read by /usr/local/bin/nvidia-oc-monitor at startup.
+# Hard per-GPU power ceiling in Watts. 0 = disabled (use hardware max).
+GPU_POWER_CAP=400
+
+# Rig-wide budget in Watts; only kicks in when total draw exceeds it.
+TOTAL_POWER_LIMIT=3500
+EOF
+fi
+
 sudo chmod +x /usr/local/bin/nvidia-oc-monitor
 
+sudo systemctl daemon-reload;          # --- PATCH: needed after editing the unit ---
 sudo systemctl enable nvidia-oc-monitor;
 sudo systemctl restart nvidia-oc-monitor;
 sudo systemctl status nvidia-oc-monitor;
